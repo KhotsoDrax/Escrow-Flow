@@ -52,78 +52,71 @@ NO  → Escrow cancels → Client refunded
 ---
 
 ## ⚙️ How It Works
+- Clients to pay freelancers into a **HOLD invoice**
+- Funds are locked in the Lightning Network (HTLC)
+- Escrow can **release** funds to freelancer or **refund** client
 
-### 1️⃣ Job Creation
-
-Client submits:
-- Job description
-- Payment amount (in sats)
-
-Escrow service generates a **Hold Invoice** using LND.
+This version uses **REST API** for simplicity — no proto files or gRPC required.
 
 ---
 
-### 2️⃣ Funding Escrow
+## How It Works
 
-Client pays the invoice.
+1. **Client requests a job**
+2. **Freelancer accepts**
+3. **Escrow Service generates a HOLD invoice**
+4. **Client pays the invoice** → Funds are locked in HTLC
+5. **Work completed?**
+  - YES → Escrow releases → Freelancer paid
+  - NO → Escrow cancels → Client refunded
 
-The invoice enters:
-- `ACCEPTED` state
-- Funds locked in HTLC
-- Not yet settled
-
-At this stage:
-- Funds cannot be claimed
-- Funds are not released
-- Timeout refund is still possible
+The escrow state is saved in `escrows.json` so you can track all locked funds.
 
 ---
 
-### 3️⃣ Work Completion (Release Funds)
+## Features
 
-If the freelancer completes the job:
-
-Escrow Service calls:
-
-SettleInvoice(preimage)
-
-Result:
-- HTLC resolves
-- Funds transferred to freelancer
+- Create escrow (HOLD invoice)
+- List current escrows
+- Release escrow (settle invoice)
+- Refund escrow (cancel invoice)
+- CLI-only interface, works on Windows, Linux, MacOS
 
 ---
 
-### 4️⃣ Refund
+## Requirements
 
-If the agreement fails:
-
-Escrow Service calls:
-
-CancelInvoice(payment_hash)
-
-Result:
-- HTLC canceled
-- Funds returned to client
+- Python 3.11+
+- Docker Desktop
+- Polar (LND + Bitcoin regtest network)
+- PowerShell (Windows) or Terminal (Linux/MacOS)
 
 ---
 
-## 🏗 Architecture
+## File Structure
 
-Frontend (Client + Freelancer UI)
-↓
-Flask Backend
-↓
-LND gRPC (Hold Invoice API)
-↓
-Lightning Network (HTLC Lock)
+---
+
+LightningEscrow/
+│
+
+├── venv/ # Python virtual environment
+
+├── escrow.py # Main CLI app
+
+├── setup.ps1 # One-command setup script
+
+├── escrows.json # Escrow database (auto-created)
+
+└── README.md # This file
 
 ---
 
 ## 🛠 Tech Stack
 
-- Python (Flask)
+- Python venv
 - LND (Polar / Regtest)
-- gRPC
+- RestAPI's
 - SQLite (Job tracking)
 - Docker (via Polar)
 
@@ -159,20 +152,26 @@ Follow these steps to run the Lightning Escrow CLI locally.
 
 ---
 
-## 1️⃣ Prerequisites
+## Setup
 
-- Python 3.10+
-- Polar (running in Regtest)
-- LND node running inside Polar
-- Access to:
-    - `tls.cert`
-    - `admin.macaroon`
-- gRPC port exposed (typically `10001`)
+### 1️⃣ Clone Project
 
----
+```powershell
+git clone https://github.com/KhotsoDrax/Escrow-Flow.git
+cd LightningEscrow
 
-## 2️⃣ Clone Project
-
-```bash
-git clone <your-repo-url>
 cd Escrow-Flow
+
+2️⃣ Run Setup Script (Windows)
+
+This script will:
+
+Create and activate a Python virtual environment
+
+Install required dependencies (requests)
+
+Prompt you for your node REST host, TLS cert path, and admin macaroon path
+
+Update escrow.py with correct paths
+
+.\setup.ps1
